@@ -8,6 +8,7 @@ A Microsoft Edge extension that automatically redirects Bing Maps URLs to Google
 - Converts location information from Bing Maps format to Google Maps format
 - Seamless redirection to Google Maps
 - **Easy on/off toggle**: Click the extension icon to enable or disable redirects anytime
+- **Visual indicator**: The extension icon changes appearance when disabled so you can see the current state at a glance
 
 ## Installation
 
@@ -52,8 +53,9 @@ BingMaps2GoogleMaps/
 ├── background.js       # Core redirect logic and URL conversion
 ├── popup.html          # Extension popup UI with toggle switch
 ├── popup.js            # Popup logic for enable/disable functionality
-├── icons/              # Extension icons (optional, but recommended)
-│   ├── icon16.png
+├── icons/              # Extension icons
+│   ├── icon16.png      # Default icon (enabled)
+│   ├── icon16Off.png   # Icon shown when disabled
 │   ├── icon48.png
 │   └── icon128.png
 └── README.md           # Documentation

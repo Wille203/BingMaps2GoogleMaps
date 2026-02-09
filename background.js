@@ -1,22 +1,44 @@
+// Cache the enabled state to avoid async issues during navigation
+let isEnabled = true;
+
+// Update the action icon based on enabled state
+function updateIcon(enabled) {
+  const path = enabled ? 'icons/icon16.png' : 'icons/icon16Off.png';
+  chrome.action.setIcon({ path: { 16: path } });
+}
+
+// Load state and update icon
+function loadState() {
+  chrome.storage.sync.get(['enabled'], function(result) {
+    isEnabled = result.enabled !== false;
+    updateIcon(isEnabled);
+  });
+}
+
+// Load state every time the service worker wakes up
+loadState();
+
+// Re-check icon whenever a tab is activated (catches browser restart edge cases)
+chrome.tabs.onActivated.addListener(loadState);
+
+chrome.storage.onChanged.addListener(function(changes) {
+  if (changes.enabled) {
+    isEnabled = changes.enabled.newValue;
+    updateIcon(isEnabled);
+  }
+});
+
 // Listen for navigation to Bing Maps and redirect to Google Maps
 chrome.webNavigation.onBeforeNavigate.addListener(
   function(details) {
     // Only process main frame navigation (not iframes)
     if (details.frameId !== 0) return;
     
-    // Check if extension is enabled
-    chrome.storage.sync.get(['enabled'], function(result) {
-      const isEnabled = result.enabled !== false; // Default to true
-      
-      if (!isEnabled) return;
-      
-      const url = new URL(details.url);
-      
-      if (url.hostname.includes('bing.com') && url.pathname.includes('/maps')) {
-        const googleMapsUrl = convertBingToGoogleMaps(url);
-        chrome.tabs.update(details.tabId, { url: googleMapsUrl });
-      }
-    });
+    // Check cached enabled state
+    if (!isEnabled) return;
+    
+    const googleMapsUrl = convertBingToGoogleMaps(new URL(details.url));
+    chrome.tabs.update(details.tabId, { url: googleMapsUrl });
   },
   {
     url: [
@@ -70,14 +92,14 @@ function convertBingToGoogleMaps(bingUrl) {
     // Check if query is coordinates (e.g., "40.7,-74.0")
     if (isCoordinateQuery(searchTerm)) {
       if (ppois) {
-        const coords = extractPPoisCoordinates(ppois);
+        const coords = extractPPoisData(ppois);
         if (coords) {
-          const zoom = lvl ? `,${convertZoomLevel(lvl)}z` : '';
+          const zoom = buildZoomParam(lvl);
           googleUrl += `/place/${coords.lat},${coords.lon}/@${coords.lat},${coords.lon}${zoom}`;
         }
       } else if (cp) {
         const [lat, lon] = cp.split('~');
-        const zoom = lvl ? `,${convertZoomLevel(lvl)}z` : '';
+        const zoom = buildZoomParam(lvl);
         googleUrl += `/place/${lat},${lon}/@${lat},${lon}${zoom}`;
       }
     } else {
@@ -86,14 +108,14 @@ function convertBingToGoogleMaps(bingUrl) {
       
       // Add center coordinates if available
       if (ppois) {
-        const coords = extractPPoisCoordinates(ppois);
+        const coords = extractPPoisData(ppois);
         if (coords) {
-          const zoom = lvl ? `,${convertZoomLevel(lvl)}z` : '';
+          const zoom = buildZoomParam(lvl);
           googleUrl += `/@${coords.lat},${coords.lon}${zoom}`;
         }
       } else if (cp) {
         const [lat, lon] = cp.split('~');
-        const zoom = lvl ? `,${convertZoomLevel(lvl)}z` : '';
+        const zoom = buildZoomParam(lvl);
         googleUrl += `/@${lat},${lon}${zoom}`;
       }
     }
@@ -104,13 +126,13 @@ function convertBingToGoogleMaps(bingUrl) {
       if (poiData.name) {
         googleUrl += `/search/${encodeURIComponent(poiData.name)}`;
       }
-      const zoom = lvl ? `,${convertZoomLevel(lvl)}z` : '';
+      const zoom = buildZoomParam(lvl);
       googleUrl += `/@${poiData.lat},${poiData.lon}${zoom}`;
     }
   // Handle center point without search (just viewing a location)
   } else if (cp) {
     const [lat, lon] = cp.split('~');
-    const zoom = lvl ? `,${convertZoomLevel(lvl)}z` : '';
+    const zoom = buildZoomParam(lvl);
     googleUrl += `/@${lat},${lon}${zoom}`;
   // Fallback: extract location from URL path
   } else {
@@ -124,23 +146,16 @@ function convertBingToGoogleMaps(bingUrl) {
   return googleUrl;
 }
 
+// Helper to build zoom parameter string
+function buildZoomParam(lvl) {
+  return lvl ? `,${convertZoomLevel(lvl)}z` : '';
+}
+
 // Check if a query string contains coordinates
 function isCoordinateQuery(query) {
   const cleaned = query.replace(/\s+/g, '');
   const coordPattern = /^-?\d+[,\.]\d+[,\s]+-?\d+[,\.]\d+$/;
   return coordPattern.test(cleaned);
-}
-
-// Extract latitude and longitude from Bing's ppois parameter
-function extractPPoisCoordinates(ppois) {
-  const parts = ppois.split('_');
-  if (parts.length >= 2) {
-    return {
-      lat: parts[0],
-      lon: parts[1]
-    };
-  }
-  return null;
 }
 
 // Extract full point of interest data (coordinates and name)
