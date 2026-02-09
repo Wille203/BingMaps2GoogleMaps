@@ -1,0 +1,27 @@
+// Load the current state when popup opens
+document.addEventListener('DOMContentLoaded', function() {
+  const toggle = document.getElementById('toggleExtension');
+  const status = document.getElementById('status');
+  
+  // Get stored state
+  chrome.storage.sync.get(['enabled'], function(result) {
+    const isEnabled = result.enabled !== false; // Default to true
+    toggle.checked = isEnabled;
+    updateStatus(isEnabled);
+  });
+  
+  // Listen for toggle changes
+  toggle.addEventListener('change', function() {
+    const isEnabled = toggle.checked;
+    
+    // Save the state
+    chrome.storage.sync.set({ enabled: isEnabled }, function() {
+      updateStatus(isEnabled);
+    });
+  });
+  
+  function updateStatus(isEnabled) {
+    status.textContent = isEnabled ? 'Active' : 'Disabled';
+    status.style.color = isEnabled ? '#4CAF50' : '#999';
+  }
+});
