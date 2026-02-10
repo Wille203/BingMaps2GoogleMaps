@@ -12,7 +12,7 @@ A Microsoft Edge extension that automatically redirects Bing Maps URLs to Google
 
 ## Installation
 
-### For Microsoft Edge (or any Chromium-based browser)
+### For Microsoft Edge or Chrome (or any Chromium-based browser)
 
 1. Open Microsoft Edge
 2. Navigate to `edge://extensions/`
@@ -78,3 +78,4 @@ BingMaps2GoogleMaps/
 ## Disclaimer
 
 This extension is not affiliated with, endorsed by, or sponsored by Microsoft or Google. It's an independent tool created to improve user experience by redirecting between map services.
+If you believe this extension infringes on any copyrights, trademarks, or other legal rights contact me and I can fix it.
